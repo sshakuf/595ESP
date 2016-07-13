@@ -14,25 +14,25 @@
 #include "mem.h"
 
 #include "common.h"
-#include "server.h" 
+#include "server.h"
 
 #include <stdio.h>
 #include <stdarg.h>
- 
-#include "sntp.h"  
 
-#include "74hc595.h" 
+#include "sntp.h"
 
- 
-#define user_procTaskPrio        0 
+#include "74hc595.h"
+
+
+#define user_procTaskPrio        0
 #define user_procTaskQueueLen    1
 os_event_t    user_procTaskQueue[user_procTaskQueueLen];
 static void loop(os_event_t *events);
 
-static volatile os_timer_t some_timer; 
+static volatile os_timer_t some_timer;
 
-// scan fow wifi networkd 
-// #define SCANNER 
+// scan fow wifi networkd
+// #define SCANNER
 
 // void dbgprint1(char* inBuff)
 // {
@@ -47,8 +47,8 @@ static volatile os_timer_t some_timer;
 //     uart0_tx_buffer(buff,strlen(buff));
 //     va_end( args );
 // }
- 
-#include "thingspeak.h"   
+
+#include "thingspeak.h"
 
 
 
@@ -139,7 +139,7 @@ void ICACHE_FLASH_ATTR SetSetverMode()
     // os_memcpy(&apConfig.password, AP_PASSWORD,strlen(AP_PASSWORD));
     // apConfig.ssid_len = strlen(AP_SSID);
     // apConfig.channel = 6;
-    // apConfig.authmode = AUTH_WPA_PSK;   
+    // apConfig.authmode = AUTH_WPA_PSK;
     // wifi_softap_set_config(&apConfig);
     // wifi_softap_dhcps_start();
 
@@ -156,7 +156,7 @@ void ICACHE_FLASH_ATTR initmDNS(struct ip_info ipconfig) {
   // info->txt_data[1] = "user1 = data1";
   // info->txt_data[2] = "user2 = data2";
   espconn_mdns_init(info);
-  // espconn_mdns_server_register(); 
+  // espconn_mdns_server_register();
 
 }
 
@@ -170,10 +170,18 @@ void ICACHE_FLASH_ATTR network_check_ip(void) {
   os_timer_disarm(&network_timer);
   wifi_get_ip_info(STATION_IF, &ipconfig);
   char buffer[20];
-  
+
   os_printf("\nConnecting to %s... ", stationConf.ssid);
   os_sprintf(buffer,"State: %d - ",wifi_station_get_connect_status());
   os_printf(buffer);
+
+  if (should_reconnect)
+  {
+    os_printf("should reconnect !! to server...\n");
+    should_reconnect = false;
+    wifi_station_connect();
+  }
+
 
   if (wifi_station_get_connect_status() == STATION_GOT_IP && ipconfig.ip.addr != 0) {
     char page_buffer[20];
@@ -209,6 +217,7 @@ void ICACHE_FLASH_ATTR network_check_ip(void) {
         should_reconnect = true;
         os_printf("could not connect to server...\n", counter);
         wifi_station_disconnect();
+        wifi_station_set_auto_connect(FALSE);
         ServerInit(flashData->ServerPort);
 
 
@@ -216,11 +225,6 @@ void ICACHE_FLASH_ATTR network_check_ip(void) {
         os_timer_arm(&network_timer, 2*60*1000, 0);// 2 min
         // wifi_station_connect();
         counter = 0;
-    }
-    if (should_reconnect)
-    {
-      should_reconnect = false;
-      wifi_station_connect();
     }
   }
 }
@@ -254,9 +258,9 @@ user_init_gpio()
     //&some_timer is the pointer
     //1000 is the fire time in ms
     //0 for once and 1 for repeating
-    //os_timer_arm(&some_timer, 1000, 1); 
-    
-} 
+    //os_timer_arm(&some_timer, 1000, 1);
+
+}
 
 void ICACHE_FLASH_ATTR printFlash()
 {
@@ -307,12 +311,12 @@ void ICACHE_FLASH_ATTR flash_write() {
     ETS_UART_INTR_ENABLE();
 
   // spi_flash_read(0x3C000, (uint32 *) settings, 1024);
- 
+
   // spi_flash_erase_sector(0x3C);
   // spi_flash_write(0x3C000,(uint32 *)settings,1024);
- 
+
 }
-  
+
 
 
 void ICACHE_FLASH_ATTR ReadFromFlash() {
@@ -369,13 +373,13 @@ void ICACHE_FLASH_ATTR init_done()
     }
     else
     {
-        os_printf("Error..."); 
+        os_printf("Error...");
     }
 }
 
 
 
-//Init function 
+//Init function
 void ICACHE_FLASH_ATTR user_init() {
 
     //uart_init(BIT_RATE_115200,BIT_RATE_115200);
@@ -401,7 +405,7 @@ void ICACHE_FLASH_ATTR user_init() {
     // initFlash();
     ReadFromFlash();
 
-    if (flashData->magic != MAGIC_NUM) 
+    if (flashData->magic != MAGIC_NUM)
     {
       os_printf("Flash not initiated NO MAGIC\n");
     //Set ap settings
@@ -413,7 +417,7 @@ void ICACHE_FLASH_ATTR user_init() {
         	flashData->ServerPort = 80;
         }
     }
-   else 
+   else
    {
        os_memcpy(&stationConf.ssid, flashData->ssid, 32);
        os_memcpy(&stationConf.password, flashData->password, 64);
@@ -445,6 +449,3 @@ void ICACHE_FLASH_ATTR user_init() {
 #endif
 
 }
-
-
-

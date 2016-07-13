@@ -1,5 +1,5 @@
  //RestAPI.c
-#include "common.h" 
+#include "common.h"
 #include "RestAPI.h"
 // #include "server.h"
 #include "thingspeak.h"
@@ -38,11 +38,11 @@ PortInfo* ports;
 //ip/sntp           - show the sntp hours from GMT
 //ip/sntp/hoursfromGMT    set hours from GMT  ( for israel should be 3)
 //ip/getwifi/
-// ip/eport/value 
+// ip/eport/value
 // ip/eportbit/{bitNum}/{value}   // eportbit/4/0- set bit 4 to 0
 // ip/scan
 
-RestPtrs _RestPtrsTable[] = { 
+RestPtrs _RestPtrsTable[] = {
   {"flipinput",&doFlipinput},		// ip/flipinput/portnum
   {"open", &doOpen},				// ip/open/portnum
   {"status", &doStatus},			// ip/status
@@ -58,7 +58,7 @@ RestPtrs _RestPtrsTable[] = {
   {"wifiport", &doWifiport},
   {"scan", &doScanWifi},
   {"setpin", &doSetPin},			// ip/pin/value    (0,1)
-  {"eport", &doePort},				// ip/eport/value 
+  {"eport", &doePort},				// ip/eport/value
   {"eportbit", &doePortBit},				// ip/eportbit/{bitNum}/{value}   // eportbit/4/0- set bit 4 to 0
   {"eportflip", &doePortFlip},				// ip/eportbit/{bitNum}/{value}   // eportbit/4/0- set bit 4 to 0
   {"END", &doStatus} // end of commands
@@ -186,14 +186,14 @@ os_printf("%s ", ipstation);
 				// output pin on
 				portsVal[i] = 1;
 				PortPinSet(i,1);
-				ThingSpeak();
+				// ThingSpeak();
 			}
 			else
 			{
 				// output pin off
 				portsVal[i] = 0;
 				PortPinSet(i,0);
-				ThingSpeak();
+				// ThingSpeak();
 			}
 		}
 	}
@@ -202,6 +202,7 @@ os_printf("%s ", ipstation);
 	{
 		flash_write();
         out595();
+        ThingSpeak();
 
 	}
 	os_printf(" timer end\n");
@@ -486,7 +487,7 @@ void ICACHE_FLASH_ATTR doSNTP(ServerConnData* conn)
 void ICACHE_FLASH_ATTR SendPortStatus(ServerConnData* conn)
 {
 
-	char buff[200]; 
+	char buff[200];
 	char *p;
 	int i=0;
 
@@ -504,7 +505,7 @@ void ICACHE_FLASH_ATTR SendPortStatus(ServerConnData* conn)
 	   	}
 	}
 	httpdSend(conn,"},", -1);
-	
+
 	httpdSend(conn," \"ePort\":", -1);
 	os_sprintf(buff,"\"%s\"", byte_to_binary(flashData->ePort), -1);
 	httpdSend(conn,buff, -1);
@@ -718,7 +719,7 @@ void ICACHE_FLASH_ATTR doSetPin(ServerConnData* conn)
 	int inputVal = atoi(param2);
 
 	PortPinSet(inputNum, inputVal);
-	
+
     SendPortStatus(conn);
 
 }
@@ -742,7 +743,7 @@ void ICACHE_FLASH_ATTR doFlipinput(ServerConnData* conn)
 		os_printf("portsVal[inputNum] = %d \r\n",portsVal[inputNum]);
 		PortPinSet(inputNum, portsVal[inputNum]);
 	}
-	else 
+	else
 	{
 	    if (GPIO_REG_READ(GPIO_OUT_ADDRESS) & portsBits[inputNum])
 	    {
@@ -792,7 +793,7 @@ void ICACHE_FLASH_ATTR doOpen(ServerConnData* conn)
 
 
 
-	char buff[50];  
+	char buff[50];
 
 	StartResponseJson(conn);
 
@@ -900,6 +901,3 @@ void ICACHE_FLASH_ATTR doScanWifi(ServerConnData* conn)
 	xmitSendBuff(conn);
 
 }
-
-
-

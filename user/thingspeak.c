@@ -63,8 +63,9 @@ static void ICACHE_FLASH_ATTR URLnetworkConnectedCb(void *arg) {
   struct espconn *conn=(struct espconn *)arg;
 
 //   char *data = "GET / HTTP/1.0\r\n\r\n\r\n";
-  	  char data[100];
-  	  os_sprintf(data, "GET /update?key=H3R64J7EHCJSNXT4&field1=%d HTTP/1.1\r\nHost: api.thingspeak.com\r\nCache-Control: no-cache\r\n\r\n\r\n", portsVal[0]);
+  	  char data[200];
+      //os_sprintf(data, "GET /update?key=H3R64J7EHCJSNXT4&field1=%d HTTP/1.1\r\nHost: api.thingspeak.com\r\nCache-Control: no-cache\r\n\r\n\r\n", portsVal[0]);
+      os_sprintf(data, "GET /update?key=H3R64J7EHCJSNXT4&field1=%d&field2=%d&field3=%d&field4=%d&field5=%d&field6=%d&field7=%d&field8=%d HTTP/1.1\r\nHost: api.thingspeak.com\r\nCache-Control: no-cache\r\n\r\n\r\n", portsVal[NUM_OF_PORTS], portsVal[NUM_OF_PORTS+1], portsVal[NUM_OF_PORTS+2], portsVal[NUM_OF_PORTS+3], portsVal[NUM_OF_PORTS+4], portsVal[NUM_OF_PORTS+5], portsVal[NUM_OF_PORTS+6], portsVal[NUM_OF_PORTS+7]);
 //  	  char* data = "GET /update?key=5ZFIUM7ZZE8RITMD&field1=%d HTTP/1.1\r\nHost: api.thingspeak.com\r\nCache-Control: no-cache\r\n\r\n\r\n";
   	  os_printf("data - %s", data);
       //URI += addr;

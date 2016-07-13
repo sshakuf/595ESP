@@ -17,7 +17,7 @@
 // #define SSID "teridion"
 // #define SSID_PASSWORD "teridionisthebest"
 
-#define AP_SSID     "ESP_door1"
+#define AP_SSID     "ESP_EVENTS"
 #define AP_PASSWORD "12341234"
 
 #define HOSTNAME "Speakers"
@@ -37,8 +37,7 @@
 #define BIT_CLEAR(a,b) ((a) &= ~(1<<(b)))
 #define BIT_FLIP(a,b) ((a) ^= (1<<(b)))
 #define BIT_CHECK(a,b) ((a) & (1<<(b)))
-
-
+#define BIT_GET(a,b)  ((a >> b) & 1)
 
 typedef struct
 {
@@ -66,10 +65,11 @@ typedef struct
 	bool Active;
 }PowerEvent;
 
-typedef enum
+typedef enum  /// bit wise
 {
-	PORT_INPUT,
-	PORT_OUTPUT,
+	PORT_INPUT = 0,
+	PORT_OUTPUT = 1,
+    PORT_EPORT_OUTPUT = 2,
 
 }PortType;
 
@@ -89,9 +89,11 @@ typedef struct
 #else
     // remove 3 ports for the 74hc595
 #define NUM_OF_PORTS 5
+#define NUM_OF_E_PORTS 8
+#define NUM_ALL_PORTS NUM_OF_PORTS+NUM_OF_E_PORTS
 #endif
 
-//__declspec(align(4))  // needs to align ? 
+//__declspec(align(4))  // needs to align ?
 typedef union _DWORD_PART_ {
     char settings[128*8];
 
@@ -100,7 +102,7 @@ typedef union _DWORD_PART_ {
         char ssid[32];
         char password[64];
         PowerEvent _PowerEvents[MAX_TIMED_POWER_EVENTS];
-        PortInfo Ports[NUM_OF_PORTS];
+        PortInfo Ports[NUM_OF_PORTS + NUM_OF_E_PORTS];
         int SNTP;
         int ServerPort;
         int ePort;

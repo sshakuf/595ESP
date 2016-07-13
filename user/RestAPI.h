@@ -9,7 +9,7 @@
 
 #include "common.h"
 
-extern bool portsVal[NUM_OF_PORTS];
+extern bool portsVal[NUM_ALL_PORTS];
 
 typedef struct 
 {
@@ -42,6 +42,7 @@ void ICACHE_FLASH_ATTR doWifiport(ServerConnData* conn);
 void ICACHE_FLASH_ATTR doScanWifi(ServerConnData* conn);
 void ICACHE_FLASH_ATTR doSetPin(ServerConnData* conn);
 void ICACHE_FLASH_ATTR doePortBit(ServerConnData* conn);
+void ICACHE_FLASH_ATTR doePortFlip(ServerConnData* conn);
 void ICACHE_FLASH_ATTR doePort(ServerConnData* conn);
 
 

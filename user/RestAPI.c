@@ -18,7 +18,9 @@
 
 #include <gpio.h>
 
-bool portsVal[NUM_OF_PORTS];
+bool portsVal[NUM_ALL_PORTS];
+
+extern char ipstation[20];
 
 //PowerEvent _PowerEvents[MAX_POWER_EVENTS];
 PowerEvent* PowerEvents;
@@ -28,14 +30,16 @@ PortInfo* ports;
 //ip/open/portnum     - not working yet
 //ip/status         - returns the ports status
 //ip/events         - returns the events
-//ip/event/ID(0-7)/ACTIVE(0-1)/PORT(0-7)/STARTTIME(HH:MM)/endtime(HH:MM)/REPEATEVERYDAY(1)  - sets a given event
+//ip/event/ID(0-7)/ACTIVE(0-1)/PORT(0-7)/eport(0-1)/STARTTIME(HH:MM)/endtime(HH:MM)/REPEATEVERYDAY(1)  - sets a given event
 //ip/time         - returns the time
-//ip/portsinfo/   - ports names
-//ip/portinfo/portname - 20chars      - sets a port name
+//ip/ports/   - ports names
+//ip/port/portname - 20chars      - sets a port name
 //ip/initialize     - intialize to default
 //ip/sntp           - show the sntp hours from GMT
 //ip/sntp/hoursfromGMT    set hours from GMT  ( for israel should be 3)
 //ip/getwifi/
+// ip/eport/value 
+// ip/eportbit/{bitNum}/{value}   // eportbit/4/0- set bit 4 to 0
 // ip/scan
 
 RestPtrs _RestPtrsTable[] = { 
@@ -47,8 +51,8 @@ RestPtrs _RestPtrsTable[] = {
   {"events", &doGetEvents},			// ip/events
   {"event", &doSetEvent},			// ip/event/ID(0-8)/ACTIVE(0-1)/PORT(0-8)/STARTTIME(HH:MM)/endtime(HH:MM)/REPEATEVERYDAY(1)
   {"time", &doGetTime},				// ip/time
-  {"portsinfo", &doGetPorts},		// ip/portsinfo/
-  {"portinfo", &doSetPorts},		// ip/portinfo/portname - 20chars
+  {"ports", &doGetPorts},		// ip/ports/
+  {"port", &doSetPorts},		// ip/port/portname - 20chars
   {"initialize", &doInitialize},	// ip/initialize
   {"sntp", &doSNTP},				// ip/sntp       or ip/sntp/hoursfromGMT
   {"wifiport", &doWifiport},
@@ -56,6 +60,7 @@ RestPtrs _RestPtrsTable[] = {
   {"setpin", &doSetPin},			// ip/pin/value    (0,1)
   {"eport", &doePort},				// ip/eport/value 
   {"eportbit", &doePortBit},				// ip/eportbit/{bitNum}/{value}   // eportbit/4/0- set bit 4 to 0
+  {"eportflip", &doePortFlip},				// ip/eportbit/{bitNum}/{value}   // eportbit/4/0- set bit 4 to 0
   {"END", &doStatus} // end of commands
 
 
@@ -119,19 +124,26 @@ bool ICACHE_FLASH_ATTR IsTimeInside(Time start, Time end, Time current)
 }
 void ICACHE_FLASH_ATTR OneSecLoop()
 {
+	bool update595 = false;
 	int i=0;
 	PowerEvents =  &flashData->_PowerEvents[0];
-	bool portsValtmp[NUM_OF_PORTS];
+	bool portsValtmp[NUM_ALL_PORTS];
 
+os_printf("%s ", ipstation);
 	os_printf("OneSecLoop ");
-	os_printf("%s GMT%s%02d\" ",epoch_to_str(sntp_time+(sntp_tz*3600)),sntp_tz > 0 ? "+" : "",sntp_tz);
+	os_printf("%s GMT%s%02d\" \n",epoch_to_str(sntp_time+(sntp_tz*3600)),sntp_tz > 0 ? "+" : "",sntp_tz);
 
 	DateTime now = Now();
 	Time curr;
 	curr.Hour = now.hour;
 	curr.Min = now.min;
 
-	for (i=0; i < NUM_OF_PORTS; i++)
+	for (i=NUM_OF_PORTS; i < NUM_ALL_PORTS; i++)
+	{
+		portsVal[i] = BIT_GET(flashData->ePort, i-NUM_OF_PORTS);
+	}
+
+	for (i=0; i < NUM_ALL_PORTS; i++)
 	{
 		portsValtmp[i] = portsVal[i];
 	}
@@ -141,28 +153,34 @@ void ICACHE_FLASH_ATTR OneSecLoop()
 		int inputNum = PowerEvents[i].Port;
 		if (PowerEvents[i].Active != 0)
 		{
-			if (inputNum >= 0 && inputNum < NUM_OF_PORTS)
+			if (inputNum >= 0 && inputNum < NUM_ALL_PORTS)
 			{
 				if (IsTimeInside(PowerEvents[i].StartTime, PowerEvents[i].EndTime, curr))
 				{
 					os_printf("Event On Occurred - %d, Start %d:%d End %d:%d\n",i, PowerEvents[i].StartTime.Hour, PowerEvents[i].StartTime.Min, PowerEvents[i].EndTime.Hour, PowerEvents[i].EndTime.Min);
-
-					portsValtmp[inputNum] = 1;
+						portsValtmp[inputNum] = 1;
+						os_printf("input num = %d, prtsvalnum[inputnum] = %d\n", inputNum, portsValtmp[inputNum] );
 				}
-				else if (portsValtmp[inputNum] != 1) // there might be other events that set it to high
+				// else if (portsValtmp[inputNum] != 1) // there might be other events that set it to high
+				else if (PowerEvents[i].EndTime.Hour == curr.Hour && PowerEvents[i].EndTime.Min == curr.Min && portsValtmp[inputNum] == 1)
 				{
 					os_printf("Event Off Occurred - %d, Start %d:%d End %d:%d\n",i, PowerEvents[i].StartTime.Hour, PowerEvents[i].StartTime.Min, PowerEvents[i].EndTime.Hour, PowerEvents[i].EndTime.Min);
-					portsValtmp[inputNum] = 0;
+						portsValtmp[inputNum] = 0;
+						os_printf("input num = %d, portsValtmp[inputnum] = %d\n", inputNum, portsValtmp[inputNum] );
 				}
+
+
 
 			}
 		}
 	}
 
-	for (i=0; i < NUM_OF_PORTS; i++)
+	for (i=0; i < NUM_ALL_PORTS; i++)
 	{
 		if (portsVal[i] != portsValtmp[i])
 		{
+			os_printf("portsVal[%d] != portsValtmp[%d]\n",i,i);
+			update595 = 1;
 			if (portsValtmp[i] !=0)
 			{
 				// output pin on
@@ -179,7 +197,14 @@ void ICACHE_FLASH_ATTR OneSecLoop()
 			}
 		}
 	}
-	os_printf(" - end\n");
+
+	if (update595)
+	{
+		flash_write();
+        out595();
+
+	}
+	os_printf(" timer end\n");
 
 }
 
@@ -206,6 +231,18 @@ void ICACHE_FLASH_ATTR doInitializeFlash(FlashData* flashData)
 		flashData->Ports[i].PortPinNumber = PortPinNumber[i];
 		flashData->Ports[i].Type = PORT_OUTPUT;
 		strncpy(&flashData->Ports[i].PortName[0], tmp, 20);
+	}
+
+	int x=0;
+	for (i=NUM_OF_PORTS; i < NUM_ALL_PORTS; i++)
+	{
+
+		os_sprintf(tmp, "eOutput%d", x);
+
+		flashData->Ports[i].PortPinNumber = x;
+		flashData->Ports[i].Type = PORT_EPORT_OUTPUT | PORT_OUTPUT;
+		strncpy(&flashData->Ports[i].PortName[0], tmp, 20);
+		x++;
 	}
 	os_printf("\ndoInitializeFlash 2");
 
@@ -256,12 +293,12 @@ void ICACHE_FLASH_ATTR doGetPorts(ServerConnData* conn)
 		StartResponseJson(conn);
 
 		httpdSend(conn,"{\"PortsInfo\":[", -1);
-		for (i=0; i < NUM_OF_PORTS; i++)
+		for (i=0; i < NUM_ALL_PORTS; i++)
 		{
 //			os_sprintf(buff,"\"RL%d\":\"%d\"", i, portsVal[i], -1);
 			os_sprintf(buff,"{\"Name\":\"%s\", \"Type\":\"%d\", \"PinNum\":\"%d\"}", ports[i].PortName, ports[i].Type, ports[i].PortPinNumber);
 			httpdSend(conn,buff, -1);
-			if (i < NUM_OF_PORTS-1)
+			if (i < NUM_ALL_PORTS-1)
 		   	{
 				httpdSend(conn,",", -1);
 		   	}
@@ -351,6 +388,38 @@ void ICACHE_FLASH_ATTR doePortBit(ServerConnData* conn)
 
 	xmitSendBuff(conn);
 }
+
+void ICACHE_FLASH_ATTR doePortFlip(ServerConnData* conn)
+{
+	char buff[20];
+	os_printf("doePort\r\n");
+	char tmp[10];
+	int bit,val;
+	int i=2;
+
+    if (getValue(tmp, conn->url,'/',i)!= -1)
+    {
+		bit = atoi(tmp);
+    	BIT_FLIP(flashData->ePort,bit);
+
+		os_printf("ePort flip bit %d", bit);
+
+        flash_write();
+        out595();
+    }
+
+
+	StartResponseJson(conn);
+
+	httpdSend(conn,"{\"ePort\":", -1);
+
+	os_sprintf(buff,"\"%s\"", byte_to_binary(flashData->ePort), -1);
+	httpdSend(conn,buff, -1);
+	httpdSend(conn,"}", -1);
+
+	xmitSendBuff(conn);
+}
+
 
 void ICACHE_FLASH_ATTR doePort(ServerConnData* conn)
 {
@@ -593,33 +662,47 @@ void ICACHE_FLASH_ATTR doGetWifi(ServerConnData* conn)
 void PortPinSet(int inputNum, bool inValue)
 {
 
-	if (PortPinNumber[inputNum] == 16)
+	if (inputNum < NUM_OF_PORTS) //real port
 	{
-		gpio16_output_set(inValue);
-		portsVal[inputNum] = inValue ? 1 : 0;
-		os_printf("Pin %d = %d \r\n", inputNum, portsVal[inputNum]);
+		if (PortPinNumber[inputNum] == 16)
+		{
+			gpio16_output_set(inValue);
+			portsVal[inputNum] = inValue ? 1 : 0;
+			os_printf("Pin %d = %d \r\n", inputNum, portsVal[inputNum]);
+		}
+		else
+		{
+
+		    if (!inValue)
+		    {
+		        //Set GPIO to LOW
+				os_printf("Pin %d = 0\r\n", inputNum);
+			    gpio_output_set(0, portsBits[inputNum], portsBits[inputNum], 0);
+		        portsVal[inputNum] = 0;
+		        // GPIO_OUTPUT_SET(inputNum,0);
+		    }
+		    else
+		    {
+		        //Set GPIO to HIGH
+				os_printf("Pin %d = 1\r\n", inputNum);
+		        gpio_output_set(portsBits[inputNum], 0, portsBits[inputNum], 0);
+		        portsVal[inputNum] = 1;
+		        // GPIO_OUTPUT_SET(inputNum, 1);
+		    }
+		}
 	}
-	else
+	else if (inputNum < NUM_ALL_PORTS) // eport
 	{
-
-	    if (!inValue)
-	    {
-	        //Set GPIO to LOW
-			os_printf("Pin %d = 0\r\n", inputNum);
-		    gpio_output_set(0, portsBits[inputNum], portsBits[inputNum], 0);
-	        portsVal[inputNum] = 0;
-	        // GPIO_OUTPUT_SET(inputNum,0);
-	    }
-	    else
-	    {
-	        //Set GPIO to HIGH
-			os_printf("Pin %d = 1\r\n", inputNum);
-	        gpio_output_set(portsBits[inputNum], 0, portsBits[inputNum], 0);
-	        portsVal[inputNum] = 1;
-	        // GPIO_OUTPUT_SET(inputNum, 1);
-	    }
+		int  bit = inputNum - NUM_OF_PORTS;
+		if (!inValue)
+		{
+			BIT_CLEAR(flashData->ePort, bit);
+			os_printf("set ePort Pin %d = 0\r\n", inputNum);
+		} else {
+			BIT_SET(flashData->ePort, bit);
+			os_printf("set ePort Pin %d = 1\r\n", inputNum);
+		}
 	}
-
 }
 
 

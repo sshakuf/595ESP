@@ -118,15 +118,30 @@ LOCAL os_timer_t network_timer;
 
 void ICACHE_FLASH_ATTR SetSetverMode()
 {
-    struct softap_config apConfig;
 
-    os_memcpy(&apConfig.ssid, AP_SSID,32);
-    os_memcpy(&apConfig.password, AP_PASSWORD,64);
-    apConfig.ssid_len = strlen(AP_SSID);
-    apConfig.channel = 6;
-    apConfig.authmode = AUTH_WPA_PSK;   
-    wifi_softap_set_config(&apConfig);
-    wifi_softap_dhcps_start();
+
+
+  char temp[64];
+  int8_t len,passLen;
+  struct softap_config *apConfig = (struct softap_config *)os_zalloc(sizeof(struct softap_config));
+  wifi_softap_get_config(apConfig);
+  os_sprintf(apConfig->ssid, AP_SSID);
+  len = os_sprintf(apConfig->ssid, AP_SSID);
+  apConfig->ssid_len = len;
+  passLen = os_sprintf(apConfig->password, AP_PASSWORD, 64);
+  apConfig->channel =11;
+  apConfig->authmode=3;
+  wifi_softap_set_config(apConfig); //- See more at: http://www.esp8266.com/viewtopic.php?f=6&t=1034#sthash.FcaAKiyi.dpuf
+
+    // struct softap_config apConfig;
+
+    // os_memcpy(&apConfig.ssid, AP_SSID,32);
+    // os_memcpy(&apConfig.password, AP_PASSWORD,strlen(AP_PASSWORD));
+    // apConfig.ssid_len = strlen(AP_SSID);
+    // apConfig.channel = 6;
+    // apConfig.authmode = AUTH_WPA_PSK;   
+    // wifi_softap_set_config(&apConfig);
+    // wifi_softap_dhcps_start();
 
 }
 
@@ -147,7 +162,8 @@ void ICACHE_FLASH_ATTR initmDNS(struct ip_info ipconfig) {
 
 int counter = 0;
 char ipstation[20];
-    struct station_config stationConf;
+struct station_config stationConf;
+bool   should_reconnect = false;
 
 void ICACHE_FLASH_ATTR network_check_ip(void) {
   struct ip_info ipconfig;
@@ -182,7 +198,7 @@ void ICACHE_FLASH_ATTR network_check_ip(void) {
   } else {
     counter++;
     os_printf("No ip found\n\r");
-    if (counter < 30)
+    if (counter < 10)
     {
         os_timer_setfn(&network_timer, (os_timer_func_t *)network_check_ip, NULL);
         os_printf("try %d\n", counter);
@@ -190,6 +206,7 @@ void ICACHE_FLASH_ATTR network_check_ip(void) {
     }
     else
     {
+        should_reconnect = true;
         os_printf("could not connect to server...\n", counter);
         wifi_station_disconnect();
         ServerInit(flashData->ServerPort);
@@ -197,8 +214,13 @@ void ICACHE_FLASH_ATTR network_check_ip(void) {
 
         // doing reconnect
         os_timer_arm(&network_timer, 2*60*1000, 0);// 2 min
-        wifi_station_connect();
+        // wifi_station_connect();
         counter = 0;
+    }
+    if (should_reconnect)
+    {
+      should_reconnect = false;
+      wifi_station_connect();
     }
   }
 }
@@ -376,7 +398,7 @@ void ICACHE_FLASH_ATTR user_init() {
     // wifi_set_opmode(STATION_MODE);
     wifi_set_opmode(STATIONAP_MODE);
 
-    initFlash();
+    // initFlash();
     ReadFromFlash();
 
     if (flashData->magic != MAGIC_NUM) 

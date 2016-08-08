@@ -22,11 +22,20 @@ SDK_BASE	?= /opt/Espressif/ESP8266_SDK
 ESPTOOL		?= python $(XTENSA_TOOLS_ROOT)/esptool.py
 
 #ESPPORT		?= /dev/tty.usbserial-A50285BI
+<<<<<<< HEAD
 # ESPPORT		?=/dev/tty.wchusbserial1410
 ESPPORT		?= /dev/tty.SLAB_USBtoUART
 #ESPPORT		?= /dev/tty.usbserial-A9ITT3JN
 
 # ESPPORT		?= /dev/tty.usbserial-A50285BI
+=======
+#ESPPORT		?=/dev/tty.wchusbserial1420
+#ESPPORT		?= /dev/tty.SLAB_USBtoUART
+#ESPPORT		?= /dev/tty.usbserial-A9ITT3JN
+
+# ESPPORT		?= /dev/tty.usbserial-A50285BI
+ESPPORT		?= /dev/tty.SLAB_USBtoUART
+>>>>>>> d63dbd4f9ff64574dd70e2903978b0d85d95db9f
 
 # name for the target project
 TARGET		= app

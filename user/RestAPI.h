@@ -11,7 +11,7 @@
 
 extern bool portsVal[NUM_ALL_PORTS];
 
-typedef struct 
+typedef struct
 {
   char* command;
   void(*f)(ServerConnData* conn);
@@ -36,6 +36,7 @@ void ICACHE_FLASH_ATTR doSetEvent(ServerConnData* conn);
 void ICACHE_FLASH_ATTR doGetTime(ServerConnData* conn);
 void ICACHE_FLASH_ATTR doGetPorts(ServerConnData* conn);
 void ICACHE_FLASH_ATTR doSetPorts(ServerConnData* conn);
+void ICACHE_FLASH_ATTR printPortsInfo(ServerConnData* conn);
 void ICACHE_FLASH_ATTR doInitialize(ServerConnData* conn);
 void ICACHE_FLASH_ATTR doSNTP(ServerConnData* conn);
 void ICACHE_FLASH_ATTR doWifiport(ServerConnData* conn);

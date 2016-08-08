@@ -212,6 +212,8 @@ os_printf("%s ", ipstation);
 void ICACHE_FLASH_ATTR doInitialize(ServerConnData* conn)
 {
 	doInitializeFlash(flashData);
+  SendPortStatus(conn);
+
 }
 void ICACHE_FLASH_ATTR doInitializeFlash(FlashData* flashData)
 {
@@ -285,19 +287,32 @@ void ICACHE_FLASH_ATTR doGetTime(ServerConnData* conn)
 		xmitSendBuff(conn);
 }
 
+
 void ICACHE_FLASH_ATTR doGetPorts(ServerConnData* conn)
+{
+  StartResponseJson(conn);
+
+  httpdSend(conn,"{", -1);
+
+  printPortsInfo(conn);
+
+  httpdSend(conn,"}", -1);
+
+  xmitSendBuff(conn);
+
+}
+
+void ICACHE_FLASH_ATTR printPortsInfo(ServerConnData* conn)
 {
 		char buff[50];
 		char *p;
 		int i=0;
 
-		StartResponseJson(conn);
-
-		httpdSend(conn,"{\"PortsInfo\":[", -1);
+		httpdSend(conn,"\"PortsInfo\":[", -1);
 		for (i=0; i < NUM_ALL_PORTS; i++)
 		{
 //			os_sprintf(buff,"\"RL%d\":\"%d\"", i, portsVal[i], -1);
-			os_sprintf(buff,"{\"Name\":\"%s\", \"Type\":\"%d\", \"PinNum\":\"%d\"}", ports[i].PortName, ports[i].Type, ports[i].PortPinNumber);
+			os_sprintf(buff,"{\"Name\":\"%s\", \"Type\":\"%d\", \"PinNum\":\"%d\", \"value\":\"%d\"}", ports[i].PortName, ports[i].Type, ports[i].PortPinNumber, portsVal[i]);
 			httpdSend(conn,buff, -1);
 			if (i < NUM_ALL_PORTS-1)
 		   	{
@@ -306,9 +321,8 @@ void ICACHE_FLASH_ATTR doGetPorts(ServerConnData* conn)
 
 		}
 
-		httpdSend(conn,"]}", -1);
+		httpdSend(conn,"]", -1);
 
-		xmitSendBuff(conn);
 }
 
 void ICACHE_FLASH_ATTR doSetPorts(ServerConnData* conn)
@@ -379,15 +393,8 @@ void ICACHE_FLASH_ATTR doePortBit(ServerConnData* conn)
     }
 
 
-	StartResponseJson(conn);
+    SendPortStatus(conn);
 
-	httpdSend(conn,"{\"ePort\":", -1);
-
-	os_sprintf(buff,"\"%s\"", byte_to_binary(flashData->ePort), -1);
-	httpdSend(conn,buff, -1);
-	httpdSend(conn,"}", -1);
-
-	xmitSendBuff(conn);
 }
 
 void ICACHE_FLASH_ATTR doePortFlip(ServerConnData* conn)
@@ -410,15 +417,8 @@ void ICACHE_FLASH_ATTR doePortFlip(ServerConnData* conn)
     }
 
 
-	StartResponseJson(conn);
+    SendPortStatus(conn);
 
-	httpdSend(conn,"{\"ePort\":", -1);
-
-	os_sprintf(buff,"\"%s\"", byte_to_binary(flashData->ePort), -1);
-	httpdSend(conn,buff, -1);
-	httpdSend(conn,"}", -1);
-
-	xmitSendBuff(conn);
 }
 
 
@@ -441,15 +441,7 @@ void ICACHE_FLASH_ATTR doePort(ServerConnData* conn)
     }
 
 
-	StartResponseJson(conn);
-
-	httpdSend(conn,"{\"ePort\":", -1);
-
-	os_sprintf(buff,"\"%s\"", byte_to_binary(flashData->ePort), -1);
-	httpdSend(conn,buff, -1);
-	httpdSend(conn,"}", -1);
-
-	xmitSendBuff(conn);
+	SendPortStatus(conn);
 }
 
 void ICACHE_FLASH_ATTR doSNTP(ServerConnData* conn)
@@ -486,7 +478,6 @@ void ICACHE_FLASH_ATTR doSNTP(ServerConnData* conn)
 
 void ICACHE_FLASH_ATTR SendPortStatus(ServerConnData* conn)
 {
-
 	char buff[200];
 	char *p;
 	int i=0;
@@ -514,6 +505,10 @@ void ICACHE_FLASH_ATTR SendPortStatus(ServerConnData* conn)
 
 	printEvents(conn);
 
+  httpdSend(conn,", ", -1);
+
+	printPortsInfo(conn);
+
 	httpdSend(conn," }", -1);
 
 	xmitSendBuff(conn);
@@ -522,16 +517,7 @@ void ICACHE_FLASH_ATTR SendPortStatus(ServerConnData* conn)
 void ICACHE_FLASH_ATTR doGetEvents(ServerConnData* conn)
 {
 
-	StartResponseJson(conn);
-
-	httpdSend(conn,"{", -1);
-
-	printEvents(conn);
-
-	httpdSend(conn,"}", -1);
-
-	xmitSendBuff(conn);
-
+  SendPortStatus(conn);
 
 }
 void ICACHE_FLASH_ATTR printEvents(ServerConnData* conn)
@@ -615,7 +601,8 @@ void ICACHE_FLASH_ATTR doSetEvent(ServerConnData* conn)
     //PowerEvents[idx].DaysRepeat = (Days)atoi(tmp);
 
     flash_write();
-    doGetEvents(conn);
+    SendPortStatus(conn);
+
 }
 
 
@@ -703,6 +690,13 @@ void PortPinSet(int inputNum, bool inValue)
 			BIT_SET(flashData->ePort, bit);
 			os_printf("set ePort Pin %d = 1\r\n", inputNum);
 		}
+    // update the new vals from the ePort
+    for (int i=NUM_OF_PORTS; i < NUM_ALL_PORTS; i++)
+    {
+      portsVal[i] = BIT_GET(flashData->ePort, i-NUM_OF_PORTS);
+    }
+
+    out595();
 	}
 }
 
@@ -793,14 +787,7 @@ void ICACHE_FLASH_ATTR doOpen(ServerConnData* conn)
 
 
 
-	char buff[50];
-
-	StartResponseJson(conn);
-
-	os_sprintf(buff,"{\"Open\": %d }", inputNum);
-	httpdSend(conn,buff, -1);
-
-	xmitSendBuff(conn);
+    SendPortStatus(conn);
 
 
 }

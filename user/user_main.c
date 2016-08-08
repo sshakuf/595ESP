@@ -226,6 +226,11 @@ void ICACHE_FLASH_ATTR network_check_ip(void) {
         // wifi_station_connect();
         counter = 0;
     }
+    if (should_reconnect)
+    {
+      should_reconnect = false;
+      wifi_station_connect();
+    }
   }
 }
 

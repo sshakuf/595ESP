@@ -202,8 +202,6 @@ os_printf("%s ", ipstation);
 	{
 		flash_write();
         out595();
-        ThingSpeak();
-
 	}
 	os_printf(" timer end\n");
 

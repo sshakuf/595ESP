@@ -22,19 +22,18 @@ SDK_BASE	?= /opt/Espressif/ESP8266_SDK
 ESPTOOL		?= python $(XTENSA_TOOLS_ROOT)/esptool.py
 
 #ESPPORT		?= /dev/tty.usbserial-A50285BI
-#ESPPORT		?=/dev/tty.wchusbserial1420
-#ESPPORT		?= /dev/tty.SLAB_USBtoUART
+# ESPPORT		?=/dev/tty.wchusbserial1410
+ESPPORT		?= /dev/tty.SLAB_USBtoUART
 #ESPPORT		?= /dev/tty.usbserial-A9ITT3JN
 
 # ESPPORT		?= /dev/tty.usbserial-A50285BI
-ESPPORT		?= /dev/tty.SLAB_USBtoUART
 
 # name for the target project
 TARGET		= app
 
 # which modules (subdirectories) of the project to include in compiling
 MODULES		=  user
-EXTRA_INCDIR    = include 
+EXTRA_INCDIR    = include
 #/opt/Espressif/include
 
 # libraries used in this project, mainly provided by the SDK
@@ -142,14 +141,14 @@ firmware:
 fc: firmware/0x00000.bin firmware/0x40000.bin
 	-$/open ~/coolterm\ Close.app/
 	sleep 2
-	-$(ESPTOOL) --port $(ESPPORT) write_flash 0x00000 firmware/0x00000.bin 0x40000 firmware/0x40000.bin	
+	-$(ESPTOOL) --port $(ESPPORT) write_flash 0x00000 firmware/0x00000.bin 0x40000 firmware/0x40000.bin
 	-$/open ~/coolterm\ open.app/
 
 flash: firmware/0x00000.bin firmware/0x40000.bin
 	-$(ESPTOOL) --port $(ESPPORT) write_flash 0x00000 firmware/0x00000.bin 0x40000 firmware/0x40000.bin
 
 flash1: firmware/0x00000.bin firmware/0x40000.bin
-	-$(ESPTOOL) --port $(ESPPORT) write_flash 0x00000 firmware/0x00000.bin 
+	-$(ESPTOOL) --port $(ESPPORT) write_flash 0x00000 firmware/0x00000.bin
 
 flash2: firmware/0x00000.bin firmware/0x40000.bin
 	-$(ESPTOOL) --port $(ESPPORT) write_flash 0x40000 firmware/0x40000.bin

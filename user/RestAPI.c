@@ -688,8 +688,9 @@ void PortPinSet(int inputNum, bool inValue)
 			BIT_SET(flashData->ePort, bit);
 			os_printf("set ePort Pin %d = 1\r\n", inputNum);
 		}
+		int i;
     // update the new vals from the ePort
-    for (int i=NUM_OF_PORTS; i < NUM_ALL_PORTS; i++)
+    for (i=NUM_OF_PORTS; i < NUM_ALL_PORTS; i++)
     {
       portsVal[i] = BIT_GET(flashData->ePort, i-NUM_OF_PORTS);
     }
